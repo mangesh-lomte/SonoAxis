@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SonoVoice — Local Clinical Documentation Assistant</title>
+  <style>
+    :root {
+      --primary: #1E40AF;
+      --primary-hover: #1D4ED8;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --header-bg: #0F172A;
+      --success: #16A34A;
+      --warning-bg: #FEF3C7;
+      --warning-border: #FDE68A;
+      --warning-text: #92400E;
+      --danger: #DC2626;
+      --draft-bg: #FEF3C7;
+      --draft-text: #92400E;
+      --reviewed-bg: #DCFCE7;
+      --reviewed-text: #166534;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background-color: var(--header-bg);
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .brand { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; }
+    .brand span { color: #60A5FA; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: #22C55E;
+      box-shadow: 0 0 6px #22C55E;
+    }
+
+    main {
+      flex: 1;
+      max-width: 1240px;
+      width: 100%;
+      margin: 16px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Management Control Card */
+    .mgmt-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .mgmt-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .mgmt-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .report-status-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .status-draft { background: var(--draft-bg); color: var(--draft-text); border: 1px solid var(--warning-border); }
+    .status-reviewed { background: var(--reviewed-bg); color: var(--reviewed-text); border: 1px solid #86EFAC; }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    select, input[type="text"], input[type="number"], input[type="file"], textarea {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--primary); }
+
+    .btn-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    button {
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, opacity 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-primary { background-color: var(--primary); color: white; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-success { background-color: var(--success); color: white; }
+    .btn-success:hover { background-color: #15803D; }
+    .btn-danger { background-color: var(--danger); color: white; }
+    .btn-danger:hover { background-color: #B91C1C; }
+    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-main); }
+    .btn-outline:hover { background: #F1F5F9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .recording-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--danger);
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    /* Structured Sections */
+    .sections-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .section-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #FAFAFA;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .section-card.present {
+      background: white;
+      border-left: 3px solid var(--primary);
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-label { font-size: 12px; font-weight: 700; color: var(--text-main); }
+    .badge-present { font-size: 10px; font-weight: 700; background: #DBEAFE; color: #1E40AF; padding: 2px 6px; border-radius: 4px; }
+    .badge-blank { font-size: 10px; font-weight: 600; background: #F1F5F9; color: #94A3B8; padding: 2px 6px; border-radius: 4px; }
+    
+    .section-input {
+      font-size: 13px;
+      line-height: 1.4;
+      width: 100%;
+      resize: vertical;
+      min-height: 38px;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .section-input:focus {
+      background: white;
+      border-color: var(--primary);
+    }
+
+    .measurements-tag {
+      font-size: 11px;
+      background: #EFF6FF;
+      color: #1E40AF;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      font-family: monospace;
+      font-weight: 600;
+    }
+    .biometry-tag {
+      font-size: 11px;
+      background: #ECFDF5;
+      color: #065F46;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    /* Modal dialogs */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-box {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Sono<span>Voice</span> <small style="font-size: 12px; opacity: 0.8; font-weight: 400;">| Local Ultrasound Reporting</small></div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span id="systemStatusText">Local Backend & SQLite Ready</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- TOP MANAGEMENT BAR -->
+    <div class="mgmt-bar">
+      <div class="mgmt-group">
+        <span class="mgmt-label">Patient:</span>
+        <select id="patientSelect" onchange="onPatientSelected()" style="min-width: 170px;">
+          <option value="">[ No Patient Selected ]</option>
+        </select>
+        <button class="btn-outline" onclick="openNewPatientModal()">+ New</button>
+      </div>
+
+      <div class="mgmt-group">
+        <span class="mgmt-label">Report:</span>
+        <select id="reportSelect" onchange="onReportSelected()" style="min-width: 200px;">
+          <option value="">[ Select Existing Report ]</option>
+        </select>
+        <button class="btn-outline" onclick="createNewReport('usg-abdomen-pelvis-male')">+ Male</button>
+        <button class="btn-outline" onclick="createNewReport('usg-abdomen-pelvis-female')">+ Female</button>
+      </div>
+
+      <div class="mgmt-group">
+        <span id="reportStatusPill" class="report-status-pill status-draft">DRAFT</span>
+        <span id="reportRevText" style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Rev #1</span>
+        <span id="saveStatusText" style="font-size: 11px; color: var(--text-muted); min-width: 80px;">Ready</span>
+      </div>
+
+      <div class="mgmt-group">
+        <button id="btnPreview" class="btn-outline" onclick="openPreviewModal()">👁️ Preview</button>
+        <button id="btnExportDocx" class="btn-outline" onclick="exportReport('docx')">📄 Word</button>
+        <button id="btnExportPdf" class="btn-outline" onclick="exportReport('pdf')">📑 PDF</button>
+        <button id="btnSaveReport" class="btn-primary" onclick="saveActiveReport()">💾 Save</button>
+        <button id="btnReviewReport" class="btn-success" onclick="toggleReviewStatus()">✓ Review</button>
+        <button class="btn-outline" onclick="openRevisionsModal()">📋 History</button>
+        <button class="btn-outline" style="color: var(--danger);" onclick="deleteActiveReport()">🗑</button>
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE -->
+    <div class="grid-layout">
+      <!-- LEFT COLUMN: DICTATION & STT -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="card">
+          <div class="card-title">
+            <span>🎙️ Local Audio Dictation</span>
+            <select id="modelSelector" style="font-size: 11px; padding: 3px 6px;">
+              <option value="small.en">Whisper small.en (Primary)</option>
+              <option value="base.en">Whisper base.en (Fast)</option>
+            </select>
+          </div>
+
+          <div class="btn-group">
+            <button id="btnRecord" class="btn-danger" onclick="toggleRecording()">● Record Mic</button>
+            <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="handleAudioUpload()">
+            <button class="btn-outline" onclick="document.getElementById('audioFileInput').click()">📁 Upload Audio</button>
+          </div>
+
+          <div id="recordingIndicator" class="recording-indicator" style="display: none;">
+            <div class="pulse-dot"></div>
+            <span id="recordTimer">00:00</span> — Recording local microphone...
+          </div>
+
+          <audio id="audioPlayback" controls style="width: 100%; display: none; height: 34px;"></audio>
+
+          <div class="form-group">
+            <label for="transcriptTextarea">Dictation Transcript (Original / Editable)</label>
+            <textarea id="transcriptTextarea" rows="6" placeholder="Type clinical dictation or use audio recording... e.g. 'Right kidney measures 10.2 cm, liver is normal in size, correction, right kidney measures 10.8 cm.'" oninput="onTranscriptChanged()"></textarea>
+          </div>
+
+          <div class="btn-group" style="justify-content: space-between;">
+            <button id="btnTranscribe" class="btn-outline" style="display: none;" onclick="transcribeRecordedAudio()">🔊 Transcribe</button>
+            <button id="btnStructure" class="btn-primary" style="flex: 1;" onclick="processAndStructure()">✨ Process with AI Engine</button>
+          </div>
+        </div>
+
+        <!-- Telemetry Card -->
+        <div class="card" style="padding: 12px 16px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+            <span>Engine: <strong>CTranslate2 (INT8 CPU)</strong></span>
+            <span>Latency: <strong id="valStructTime">0.0 ms</strong></span>
+            <span>Active Organs: <strong id="valActiveOrgans">0</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: CANONICAL STRUCTURED FINDINGS -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="card">
+          <div class="card-title">
+            <span id="structuredCardTitle">📑 Structured Findings</span>
+            <span id="activeTemplateBadge" class="badge-present">USG Abdomen & Pelvis</span>
+          </div>
+
+          <!-- Unassigned Findings Box -->
+          <div id="unassignedContainer" style="display: none;"></div>
+
+          <!-- Explicit Correction Audit Trail -->
+          <div id="supersededContainer" style="display: none;"></div>
+
+          <!-- Canonical Organ Sections -->
+          <div class="sections-container" id="sectionsContainer">
+            <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 13px;">
+              Select or create a report to begin clinical structuring.
+            </div>
+          </div>
+
+          <!-- Impression Box -->
+          <div class="form-group" style="margin-top: 6px;">
+            <label for="impressionTextarea">Impression / Conclusion</label>
+            <textarea id="impressionTextarea" rows="2" placeholder="[ Blank — No impression explicitly dictated ]" oninput="markUnsaved()"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- PATIENT CREATION MODAL -->
+  <div id="patientModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="card-title">
+        <span>Register New Patient</span>
+        <button class="btn-outline" onclick="closePatientModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Patient ID / MRN *</label>
+        <input type="text" id="modalPatientId" placeholder="e.g. MRN-10024" required>
+      </div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="modalFullName" placeholder="e.g. John Doe" required>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Age (Years)</label>
+          <input type="number" id="modalAge" placeholder="45">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="modalGender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-group" style="justify-content: flex-end; margin-top: 8px;">
+        <button class="btn-outline" onclick="closePatientModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitNewPatient()">Register Patient</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVISIONS MODAL -->
+  <div id="revisionsModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 600px;">
+      <div class="card-title">
+        <span>Report Revision History</span>
+        <button class="btn-outline" onclick="closeRevisionsModal()">✕</button>
+      </div>
+      <div id="revisionsListContainer" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+        Loading revisions...
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT PREVIEW MODAL -->
+  <div id="previewModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="width: 880px; max-width: 95vw; height: 90vh; display: flex; flex-direction: column;">
+      <div class="card-title" style="margin-bottom: 6px;">
+        <span>👁️ Clinical Report Live Preview (Template Faithful)</span>
+        <div class="btn-group">
+          <button class="btn-outline" onclick="exportReport('docx')">📄 Download DOCX</button>
+          <button class="btn-outline" onclick="exportReport('pdf')">📑 Download PDF</button>
+          <button class="btn-outline" onclick="closePreviewModal()">✕ Close</button>
+        </div>
+      </div>
+      <iframe id="previewIframe" style="flex: 1; border: 1px solid var(--border); border-radius: 6px; width: 100%; background: #fff;"></iframe>
+    </div>
+  </div>
+
+  <script>
+    let activeReport = null;
+    let registeredPatients = [];
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordInterval = null;
+    let hasUnsavedChanges = false;
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadPatients();
+      await loadReports();
+    });
+
+    // ================= PATIENT MANAGEMENT =================
+
+    async function loadPatients() {
+      try {
+        const res = await fetch('/api/patients');
+        registeredPatients = await res.json();
+        const sel = document.getElementById('patientSelect');
+        sel.innerHTML = '<option value="">[ No Patient Selected ]</option>';
+        registeredPatients.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.innerText = `${p.full_name} (${p.patient_id})`;
+          sel.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Failed to load patients:", err);
+      }
+    }
+
+    function openNewPatientModal() {
+      document.getElementById('modalPatientId').value = `PT-${Math.floor(1000 + Math.random() * 9000)}`;
+      document.getElementById('modalFullName').value = '';
+      document.getElementById('modalAge').value = '';
+      document.getElementById('patientModal').style.display = 'flex';
+    }
+
+    function closePatientModal() {
+      document.getElementById('patientModal').style.display = 'none';
+    }
+
+    async function submitNewPatient() {
+      const pid = document.getElementById('modalPatientId').value.trim();
+      const name = document.getElementById('modalFullName').value.trim();
+      const age = parseInt(document.getElementById('modalAge').value) || null;
+      const gender = document.getElementById('modalGender').value;
+
+      if (!pid || !name) {
+        alert("Patient ID and Full Name are required.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/patients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patient_id: pid, full_name: name, age_years: age, gender: gender })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.detail || "Registration failed");
+          return;
+        }
+        const created = await res.json();
+        closePatientModal();
+        await loadPatients();
+        document.getElementById('patientSelect').value = created.id;
+        if (activeReport) {
+          activeReport.patient_id = created.id;
+          markUnsaved();
+        }
+      } catch (err) {
+        alert("Failed to create patient: " + err.message);
+      }
+    }
+
+    function onPatientSelected() {
+      const pId = document.getElementById('patientSelect').value;
+      if (activeReport) {
+        activeReport.patient_id = pId || null;
+        markUnsaved();
+      }
+    }
+
+    // ================= REPORT MANAGEMENT =================
+
+    async function loadReports() {
+      try {
+        const res = await fetch('/api/reports');
+        const list = await res.json();
+        const sel = document.getElementById('reportSelect');
+        sel.innerHTML = '<option value="">[ Select Existing Report ]</option>';
+        list.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          const pName = r.patient_name || 'No Patient';
+          opt.innerText = `${r.report_number || r.id.substring(0,8)} — ${pName} (${r.status})`;
+          sel.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Failed to load reports:", err);
+      }
+    }
+
+    async function createNewReport(templateId) {
+      if (hasUnsavedChanges && !confirm("You have unsaved changes. Discard and create new report?")) {
+        return;
+      }
+
+      const pId = document.getElementById('patientSelect').value || null;
+      try {
+        const res = await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template_id: templateId, patient_id: pId })
+        });
+        const rep = await res.json();
+        await loadReports();
+        document.getElementById('reportSelect').value = rep.id;
+        loadReportIntoUI(rep);
+      } catch (err) {
+        alert("Failed to create report: " + err.message);
+      }
+    }
+
+    async function onReportSelected() {
+      const rId = document.getElementById('reportSelect').value;
+      if (!rId) return;
+      try {
+        const res = await fetch(`/api/reports/${rId}`);
+        const rep = await res.json();
+        loadReportIntoUI(rep);
+      } catch (err) {
+        alert("Failed to load report: " + err.message);
+      }
+    }
+
+    function loadReportIntoUI(rep) {
+      activeReport = rep;
+      hasUnsavedChanges = false;
+      document.getElementById('saveStatusText').innerText = "Saved";
+
+      // Set Patient Selector
+      document.getElementById('patientSelect').value = rep.patient_id || '';
+
+      // Set Status & Revision
+      const pill = document.getElementById('reportStatusPill');
+      pill.innerText = rep.status;
+      pill.className = `report-status-pill ${rep.status === 'REVIEWED' ? 'status-reviewed' : 'status-draft'}`;
+      document.getElementById('reportRevText').innerText = `Rev #${rep.revision_number}`;
+
+      // Set Review Button Text
+      const revBtn = document.getElementById('btnReviewReport');
+      revBtn.innerText = rep.status === 'REVIEWED' ? '↩ Revert to Draft' : '✓ Mark Reviewed';
+      revBtn.className = rep.status === 'REVIEWED' ? 'btn-outline' : 'btn-success';
+
+      // Set Transcripts
+      document.getElementById('transcriptTextarea').value = rep.edited_transcript || rep.original_transcript || '';
+
+      // Set Template Title
+      document.getElementById('activeTemplateBadge').innerText = rep.template_name || rep.template_id;
+
+      // Render Structured Findings
+      if (rep.structured_findings) {
+        renderStructuredReport(rep.structured_findings);
+      } else {
+        document.getElementById('sectionsContainer').innerHTML = '<div style="color: var(--text-muted); padding: 20px;">No findings generated yet. Click "Process with AI".</div>';
+      }
+
+      // Set Impression
+      document.getElementById('impressionTextarea').value = rep.impression || '';
+    }
+
+    function markUnsaved() {
+      hasUnsavedChanges = true;
+      document.getElementById('saveStatusText').innerText = "● Unsaved";
+      document.getElementById('saveStatusText').style.color = "var(--warning-text)";
+    }
+
+    async function saveActiveReport() {
+      if (!activeReport) {
+        alert("No active report to save. Create or select a report first.");
+        return;
+      }
+
+      // Collect edits from sections
+      if (activeReport.structured_findings && activeReport.structured_findings.sections) {
+        activeReport.structured_findings.sections.forEach(sec => {
+          const input = document.getElementById(`section_input_${sec.key}`);
+          if (input) {
+            sec.text = input.value.trim() || null;
+            sec.is_present = Boolean(sec.text);
+          }
+        });
+      }
+
+      const payload = {
+        patient_id: document.getElementById('patientSelect').value || null,
+        edited_transcript: document.getElementById('transcriptTextarea').value,
+        structured_findings: activeReport.structured_findings,
+        impression: document.getElementById('impressionTextarea').value.trim() || null,
+        expected_revision_number: activeReport.revision_number
+      };
+
+      try {
+        const res = await fetch(`/api/reports/${activeReport.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.status === 409) {
+          alert("Concurrency Conflict: Report was updated elsewhere. Reloading latest.");
+          await onReportSelected();
+          return;
+        }
+
+        const updated = await res.json();
+        loadReportIntoUI(updated);
+        await loadReports();
+        document.getElementById('reportSelect').value = updated.id;
+        document.getElementById('saveStatusText').innerText = "✓ Saved";
+        document.getElementById('saveStatusText').style.color = "var(--success)";
+      } catch (err) {
+        alert("Save failed: " + err.message);
+      }
+    }
+
+    async function toggleReviewStatus() {
+      if (!activeReport) return;
+
+      if (activeReport.status === 'REVIEWED') {
+        // Revert to draft
+        if (!confirm("Revert this reviewed report back to DRAFT?")) return;
+        const res = await fetch(`/api/reports/${activeReport.id}/revert-draft`, { method: 'POST' });
+        const updated = await res.json();
+        loadReportIntoUI(updated);
+      } else {
+        // Mark reviewed
+        const reviewer = prompt("Enter Clinician / Radiologist Name:", "Dr. Radiologist");
+        if (!reviewer) return;
+
+        const res = await fetch(`/api/reports/${activeReport.id}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reviewed_by: reviewer, acknowledge_unresolved: true })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.detail || "Review failed");
+          return;
+        }
+        const updated = await res.json();
+        loadReportIntoUI(updated);
+      }
+      await loadReports();
+    }
+
+    async function deleteActiveReport() {
+      if (!activeReport) return;
+      if (!confirm(`Are you sure you want to permanently delete report ${activeReport.report_number || activeReport.id}?`)) return;
+
+      await fetch(`/api/reports/${activeReport.id}`, { method: 'DELETE' });
+      activeReport = null;
+      await loadReports();
+      document.getElementById('sectionsContainer').innerHTML = '<div style="color: var(--text-muted); padding: 20px;">Report deleted. Select or create a report.</div>';
+    }
+
+    // ================= REVISIONS HISTORY =================
+
+    async function openRevisionsModal() {
+      if (!activeReport) {
+        alert("Select a report first.");
+        return;
+      }
+      document.getElementById('revisionsModal').style.display = 'flex';
+      const container = document.getElementById('revisionsListContainer');
+      container.innerHTML = "Loading...";
+
+      const res = await fetch(`/api/reports/${activeReport.id}/revisions`);
+      const revs = await res.json();
+      if (!revs.length) {
+        container.innerHTML = "No revision history recorded.";
+        return;
+      }
+
+      container.innerHTML = revs.map(r => `
+        <div style="border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; background: #FAFAFA;">
+          <div style="display: flex; justify-content: space-between; font-weight: 700;">
+            <span>Rev #${r.revision_number} — [${r.change_type}]</span>
+            <span style="font-size: 11px; color: var(--text-muted);">${r.created_at.replace('T', ' ').substring(0,19)}</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+            Status: ${r.is_reviewed ? 'REVIEWED' : 'DRAFT'} | By: ${r.changed_by}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function closeRevisionsModal() {
+      document.getElementById('revisionsModal').style.display = 'none';
+    }
+
+    // ================= REPORT PREVIEW & EXPORT =================
+
+    async function openPreviewModal() {
+      if (!activeReport) {
+        alert("Select or create a report first.");
+        return;
+      }
+      if (hasUnsavedChanges) {
+        if (confirm("You have unsaved changes. Save before previewing?")) {
+          await saveActiveReport();
+        }
+      }
+      const iframe = document.getElementById('previewIframe');
+      iframe.src = `/api/reports/${activeReport.id}/preview?t=${Date.now()}`;
+      document.getElementById('previewModal').style.display = 'flex';
+    }
+
+    function closePreviewModal() {
+      document.getElementById('previewModal').style.display = 'none';
+      document.getElementById('previewIframe').src = 'about:blank';
+    }
+
+    async function exportReport(format) {
+      if (!activeReport) {
+        alert("Select or create a report first.");
+        return;
+      }
+      if (hasUnsavedChanges) {
+        if (confirm("You have unsaved changes. Save before exporting?")) {
+          await saveActiveReport();
+        }
+      }
+      const url = `/api/reports/${activeReport.id}/export/${format}`;
+      window.open(url, '_blank');
+    }
+
+    // ================= STRUCTURING INTEGRATION =================
+
+    function onTranscriptChanged() {
+      markUnsaved();
+    }
+
+    async function processAndStructure() {
+      const text = document.getElementById('transcriptTextarea').value.trim();
+      if (!text) {
+        alert("Please dictate or type text first.");
+        return;
+      }
+
+      if (!activeReport) {
+        // Create an ad-hoc Male report if none open
+        await createNewReport('usg-abdomen-pelvis-male');
+      }
+
+      const btn = document.getElementById('btnStructure');
+      btn.disabled = true;
+      btn.innerText = "✨ Structuring...";
+
+      try {
+        const res = await fetch(`/api/reports/${activeReport.id}/structure`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript_text: text, force_regenerate: true })
+        });
+        const updated = await res.json();
+        loadReportIntoUI(updated);
+        document.getElementById('saveStatusText').innerText = "✓ Saved Draft";
+        document.getElementById('saveStatusText').style.color = "var(--success)";
+      } catch (err) {
+        alert("Structuring failed: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "✨ Process with AI Engine";
+      }
+    }
+
+    function renderStructuredReport(structured) {
+      if (!structured || !structured.sections) return;
+
+      document.getElementById('valStructTime').innerText = `${structured.processing_time_ms || 0.5} ms`;
+      const activeCount = structured.sections.filter(s => s.is_present).length;
+      document.getElementById('valActiveOrgans').innerText = activeCount;
+
+      // Render Unassigned Findings
+      const unassignedContainer = document.getElementById('unassignedContainer');
+      const unassignedList = structured.unassigned_findings || [];
+      if (unassignedList.length > 0) {
+        unassignedContainer.style.display = 'block';
+        unassignedContainer.innerHTML = `
+          <div style="background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
+            <strong>⚠️ Unassigned Findings (Review Required):</strong>
+            ${unassignedList.map(u => `<div>• "${u.raw_text}" <em>(${u.reason})</em></div>`).join('')}
+          </div>
+        `;
+      } else {
+        unassignedContainer.style.display = 'none';
+      }
+
+      // Render Superseded History
+      const supersededContainer = document.getElementById('supersededContainer');
+      const supersededList = structured.superseded_history || [];
+      if (supersededList.length > 0) {
+        supersededContainer.style.display = 'block';
+        supersededContainer.innerHTML = `
+          <div style="background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
+            <strong>📋 Spoken Correction Audit:</strong>
+            ${supersededList.map(s => `<div>• <strong>${s.organ_key}</strong>: "${s.superseded_text}" superseded (${s.reason})</div>`).join('')}
+          </div>
+        `;
+      } else {
+        supersededContainer.style.display = 'none';
+      }
+
+      // Render Canonical Sections
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+      structured.sections.forEach(sec => {
+        const div = document.createElement('div');
+        div.className = `section-card ${sec.is_present ? 'present' : ''}`;
+
+        let measHtml = '';
+        if (sec.measurements && sec.measurements.length > 0) {
+          sec.measurements.forEach(m => {
+            measHtml += `<span class="measurements-tag">📏 ${m.raw_str}</span>`;
+          });
+        }
+        if (sec.calculated_biometry && sec.calculated_biometry.volume_cc) {
+          measHtml += `<span class="biometry-tag">🧮 Vol: ${sec.calculated_biometry.volume_cc} cc</span>`;
+        }
+
+        div.innerHTML = `
+          <div class="section-header">
+            <span class="section-label">${sec.order}. ${sec.label}</span>
+            <span class="${sec.is_present ? 'badge-present' : 'badge-blank'}">${sec.is_present ? 'Dictated' : 'Blank'}</span>
+          </div>
+          <textarea id="section_input_${sec.key}" class="section-input" rows="1" placeholder="[ Blank — not mentioned ]" oninput="markUnsaved()">${sec.text || ''}</textarea>
+          ${measHtml ? `<div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">${measHtml}</div>` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // ================= RECORDING & UPLOAD =================
+
+    async function toggleRecording() {
+      const btn = document.getElementById('btnRecord');
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        btn.innerText = "● Record Mic";
+        btn.className = "btn-danger";
+        document.getElementById('recordingIndicator').style.display = "none";
+        clearInterval(recordInterval);
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(blob);
+            const player = document.getElementById('audioPlayback');
+            player.src = audioUrl;
+            player.style.display = 'block';
+            document.getElementById('btnTranscribe').style.display = 'inline-flex';
+          };
+          mediaRecorder.start();
+          btn.innerText = "■ Stop Recording";
+          btn.className = "btn-primary";
+          document.getElementById('recordingIndicator').style.display = "flex";
+          let sec = 0;
+          recordInterval = setInterval(() => {
+            sec++;
+            const m = String(Math.floor(sec/60)).padStart(2,'0');
+            const s = String(sec%60).padStart(2,'0');
+            document.getElementById('recordTimer').innerText = `${m}:${s}`;
+          }, 1000);
+        } catch (err) {
+          alert("Microphone permission denied or unavailable. You can use 'Upload Audio' instead.");
+        }
+      }
+    }
+
+    async function transcribeRecordedAudio() {
+      if (!audioChunks.length) return;
+      const blob = new Blob(audioChunks, { type: 'audio/wav' });
+      await sendAudioBlobForTranscription(blob, "recorded_dictation.wav");
+    }
+
+    async function handleAudioUpload() {
+      const input = document.getElementById('audioFileInput');
+      if (!input.files.length) return;
+      const file = input.files[0];
+      await sendAudioBlobForTranscription(file, file.name);
+    }
+
+    async function sendAudioBlobForTranscription(blob, filename) {
+      if (!activeReport) {
+        await createNewReport('usg-abdomen-pelvis-male');
+      }
+
+      const formData = new FormData();
+      formData.append('file', blob, filename);
+      formData.append('model_name', document.getElementById('modelSelector').value);
+
+      const btn = document.getElementById('btnStructure');
+      btn.disabled = true;
+      btn.innerText = "Transcribing & Structuring...";
+
+      try {
+        const res = await fetch(`/api/reports/${activeReport.id}/audio`, {
+          method: 'POST',
+          body: formData
+        });
+        const rep = await res.json();
+        loadReportIntoUI(rep);
+      } catch (err) {
+        alert("Transcription error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "✨ Process with AI Engine";
+      }
+    }
+  </script>
+</body>
+</html>

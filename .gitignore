@@ -1,0 +1,68 @@
+# Python & Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Compiled Frontend Artifacts
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Local Environment Variables & Cryptographic Secrets
+.env
+.env.local
+.env.*.local
+data/config/
+*.key
+*.pem
+
+# Local SQLite Databases, Backups & User Uploads
+data/*.db
+data/*.db-*
+data/audio/*
+!data/audio/.gitkeep
+data/exports/*
+data/ocr_uploads/
+data/backups/
+backups/
+uploads/
+
+# Whisper Model Weights (downloaded or provisioned locally)
+models/
+
+# Confidential Institutional DOCX Templates & Clinic Stationery
+references/*.docx
+references/*.docm
+references/*.doc
+references/*.pdf
+references/*.jpeg
+references/*.jpg
+references/*.png
+references/original_templates/
+references/sanitized_templates/
+references/fictional_templates/
+
+# Internal Demo Exports, Recording Scripts & Scratch Development Artifacts
+demo/
+scripts/
+research/
+scratch/
+tmp/
+.cache/
+.playwright-mcp/
+*.log
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
